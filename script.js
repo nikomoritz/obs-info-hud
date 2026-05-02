@@ -82,13 +82,21 @@ function connectws() {
 										let leftMeter = document.getElementById("theGreenShitThatsInsideTheOtherContainerLeft");
 										let rightMeter = document.getElementById("theGreenShitThatsInsideTheOtherContainerRight");
 
+										// inputLevelsMul values are linear amplitude (0-1).
+										// Convert to a dB-scaled percentage so the meter matches OBS's own meters.
+										let leftChannel = input.inputLevelsMul[0];
+										let rightChannel = input.inputLevelsMul[1] || leftChannel;
+
+										let leftHeight = mulToMeterPercent(leftChannel[1]);
+										let rightHeight = mulToMeterPercent(rightChannel[1]);
+
 										var tl = new TimelineMax();
 										tl
-											.to(leftMeter, 0.1, { height: + 100 * input.inputLevelsMul[0][1] + "%", ease: Linear.easeNone });
+											.to(leftMeter, 0.1, { height: leftHeight + "%", ease: Linear.easeNone });
 
 										tl = new TimelineMax();
 										tl
-											.to(rightMeter, 0.1, { height: + 100 * input.inputLevelsMul[1][1] + "%", ease: Linear.easeNone });
+											.to(rightMeter, 0.1, { height: rightHeight + "%", ease: Linear.easeNone });
 
 										document.getElementById("theMotherOfAllVolumeContainers").style.visibility = `visible`;
 									}
@@ -260,6 +268,17 @@ function RemoveMilliseconds(timecode) {
 
 function ConvertToMegabytes(bytes) {
 	return ((bytes / 1024) / 1024).toFixed(2);
+}
+
+// Map a linear amplitude (mul, 0-1) from obs-websocket InputVolumeMeters
+// onto a 0-100% bar height using a -60..0 dB scale, like OBS's own meters.
+function mulToMeterPercent(mul) {
+	if (!mul || mul <= 0) return 0;
+	const db = 20 * Math.log10(mul);
+	const minDb = -60;
+	if (db <= minDb) return 0;
+	if (db >= 0) return 100;
+	return ((db - minDb) / -minDb) * 100;
 }
 
 function CreateGuid() {
